@@ -14,10 +14,23 @@ export interface Route {
   points: ProfilePoint[];
   totalKm: number;
   totalSec: number;   // mid estimate
-  snapped: boolean;   // true if DEM snapping succeeded
+  snapped: boolean;   // true if DEM sampling succeeded
   demFailures: number;
   demFetched: number;
+  /** How lateral position was decided — see SnapMode. */
+  snapMode: SnapMode;
 }
+
+/**
+ * `thalweg`   — the line is only approximate, so each point is *moved* to the lowest DEM
+ *               cell across a wide valley transect. Corrects lateral error, but in a broad
+ *               floodplain the lowest cell can belong to a side channel or a neighbouring
+ *               drainage, which pulls the path off the river.
+ * `elevation` — the line is already the surveyed channel (OSM), so points are never moved;
+ *               the DEM is used only to read an elevation, taking the minimum over a narrow
+ *               window to land on the water surface rather than a bank or a bridge deck.
+ */
+export type SnapMode = 'thalweg' | 'elevation';
 
 const R = 6371000;
 const rad = (d: number) => (d * Math.PI) / 180;
@@ -53,22 +66,30 @@ export interface RoutingParams { kMin: number; kMid: number; kMax: number; vMin:
 
 /**
  * Build the route:
- *  1. densify seed line
- *  2. for each point, sample a perpendicular transect across the valley and move to the lowest DEM cell (thalweg snap)
- *  3. light positional smoothing, enforce monotonic non-increasing elevation downstream
+ *  1. densify the input line
+ *  2. sample a perpendicular transect and either move the point to the lowest DEM cell
+ *     (`thalweg`) or just read an elevation without moving it (`elevation`) — see SnapMode
+ *  3. enforce monotonic non-increasing elevation downstream
  *  4. gradient over a ±1 km window, then slope-kinematic routing for k in {min, mid, max}
  */
 export async function buildRoute(
-  seed: LngLat[],
+  line: LngLat[],
   params: RoutingParams,
-  opts: { stepM?: number; transectHalfM?: number; transectSamples?: number; onProgress?: (label: string, f: number) => void } = {}
+  opts: {
+    stepM?: number; transectHalfM?: number; transectSamples?: number;
+    snapMode?: SnapMode;
+    onProgress?: (label: string, f: number) => void;
+  } = {}
 ): Promise<Route> {
+  const mode: SnapMode = opts.snapMode ?? 'thalweg';
   const stepM = opts.stepM ?? 200;
-  const halfM = opts.transectHalfM ?? 900;
-  const nS = opts.transectSamples ?? 25;
+  // A surveyed centreline needs only a narrow window to find the water surface; an
+  // approximate line needs a whole-valley transect to be dragged onto the channel.
+  const halfM = opts.transectHalfM ?? (mode === 'elevation' ? 60 : 900);
+  const nS = opts.transectSamples ?? (mode === 'elevation' ? 5 : 25);
   const prog = opts.onProgress ?? (() => {});
 
-  const dense = densify(seed, stepM);
+  const dense = densify(line, stepM);
   const dem = new DemSampler(12, 6);
 
   // 1) sample transects
@@ -90,7 +111,7 @@ export async function buildRoute(
   const elev = await dem.elevations(flat, (d, t) => prog('Sampling real elevation across the valley', 0.05 + 0.7 * (d / t)));
 
   // 2) snap
-  prog('Snapping to the valley floor', 0.8);
+  prog(mode === 'elevation' ? 'Reading channel elevation' : 'Snapping to the valley floor', 0.8);
   const snappedPts: LngLat[] = [];
   const snappedElev: number[] = [];
   let nulls = 0;
@@ -106,7 +127,8 @@ export async function buildRoute(
     }
     const v = elev[i * nS + bi];
     if (v == null) { nulls++; snappedPts.push(dense[i]); snappedElev.push(NaN); }
-    else { snappedPts.push(transects[i][bi]); snappedElev.push(v); }
+    // In `elevation` mode the OSM geometry is authoritative: take the elevation, keep the position.
+    else { snappedPts.push(mode === 'elevation' ? dense[i] : transects[i][bi]); snappedElev.push(v); }
   }
   const snapped = nulls < dense.length * 0.2;
 
@@ -126,8 +148,9 @@ export async function buildRoute(
     if (lastGood >= 0) for (let k = lastGood + 1; k < snappedElev.length; k++) snappedElev[k] = snappedElev[lastGood];
   }
 
-  // 3) smooth positions (window 3) — keeps the line on the channel without zig-zag
-  const pts: LngLat[] = snappedPts.map((p, i) => {
+  // 3) smooth positions (window 3) — only needed where snapping moved points around;
+  //    an OSM centreline is already a clean surveyed line and smoothing would cut its meanders.
+  const pts: LngLat[] = mode === 'elevation' ? snappedPts : snappedPts.map((p, i) => {
     if (i === 0 || i === snappedPts.length - 1) return p;
     const a = snappedPts[i - 1], b = snappedPts[i + 1];
     return [(a[0] + p[0] + b[0]) / 3, (a[1] + p[1] + b[1]) / 3];
@@ -166,7 +189,7 @@ export async function buildRoute(
     lng: p[0], lat: p[1], km: km[i], elev: mono[i], elevRaw: snappedElev[i], grad: grad[i],
     tMin: tMin[i], tMid: tMid[i], tMax: tMax[i],
   }));
-  return { points, totalKm, totalSec: tMid[tMid.length - 1], snapped, demFailures: dem.failures, demFetched: dem.fetched };
+  return { points, totalKm, totalSec: tMid[tMid.length - 1], snapped, demFailures: dem.failures, demFetched: dem.fetched, snapMode: mode };
 }
 
 /** Index of the nearest route point to a lng/lat. */
