@@ -69,8 +69,25 @@ Journalists, researchers and the public each lack a spatially accurate, time-res
 - [ ] Terrain streams progressively; interactive before full load
 
 **R2 · Real hydrography.** Flow path follows the actual Lhende Khola → Bhote Koshi → Trishuli → Narayani centreline (OSM/HydroRIVERS), not a spline through waypoints.
-- [x] Measured centreline length is displayed; it agrees with published figures allowing for sinuosity (reported ~170 km ≈ a straight-valley approximation). *Amended 2026-08-30: the original gate — "within 10 % of the accepted ~170 km" — assumed the reported figure was a measured centreline. It is a press number with no stated methodology. The real channel measures 199 km (sinuosity 1.61 against a 124 km straight line), so the old gate would have been satisfied only by a path that wandered off the river. Show both numbers, label provenance, and never adjust measured geometry to hit a soft external figure.*
+- [x] Measured centreline length is displayed, with its provenance labelled, and is never adjusted to match an external figure. *Amended 2026-08-30: the original gate — "within 10 % of the accepted ~170 km" — assumed ~170 km was a measured centreline. The real channel measures 199 km (sinuosity 1.61 against a 124 km straight line), so the old gate would have been satisfied only by a path that wandered off the river.* **Superseded by the open item below: the ~170 km figure itself could not be sourced.** Do not re-derive a gate from it until §5 R2a is settled.
 - [x] Path never leaves the DEM valley floor by more than 50 m horizontally — median distance to the mapped channel is 0 m, p90 30 m (ADR-6)
+
+**R2a · Runout distance must be sourced and disambiguated.** *(Opened 2026-08-30.)* The
+`~170 km` figure used throughout this document, the README and `event.json`
+(`reportedRunoutKm`) could not be traced to any source. Published figures describe three
+different quantities and none is 170 km:
+
+| Figure | What it describes | Source |
+|---|---|---|
+| **80 km** (50 mi) | "the flow reached up to 80 km downstream" | Wikipedia aggregate |
+| **~100 km** | "the debris flow and flooding travelled nearly 100 km" | USGS / Petley, Landslide Blog (Eos) |
+| **72 km** (45 mi) | "struck dozens of settlements along a 72 km stretch of the Trishuli" | Wikipedia aggregate |
+| **240 km** (150 mi) | "carried the bodies of some victims 240 km away" — recovered in Kushinagar and Maharajganj, Uttar Pradesh | Wikipedia aggregate |
+
+- [ ] Replace `reportedRunoutKm` with separately sourced fields for **flow reach** and
+      **debris/body transport**; the two are not the same claim and must not share a number
+- [ ] Decide how the flood front represents the reach beyond the sourced flow extent
+      (see §7 note); it currently animates a uniform front over the full 199 km
 
 **R3 · Time-dynamic flood front.** A playable timeline (play/pause/scrub/speed) animates the front along the path with slope-dependent speed; clock shows time since collapse.
 - [ ] Given the timeline is playing, when the front crosses a stage boundary, then the caption, stage list and profile marker update within the same frame
