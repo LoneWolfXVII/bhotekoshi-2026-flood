@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Nepal–Tibet Flood · Georeferenced 3D Reconstruction</title>
+<style>
+  :root{
+    --ink:#0b0e13;--ink2:#131822;--line:#26303d;--fg:#e6edf3;--mut:#8b97a7;
+    --ice:#cfe6ff;--flood:#dd7a3a;--flood2:#f4ac6a;--river:#3f8fd6;--pin:#e0623c;--warn:#f2c14e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--ink);color:var(--fg);overflow:hidden;
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial}
+  canvas{display:block;touch-action:none}
+  .mono{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace}
+  #app{position:fixed;inset:0}
+
+  header{position:absolute;top:0;left:0;right:0;padding:15px 18px;pointer-events:none;z-index:5;
+    background:linear-gradient(180deg,rgba(7,9,13,.85),rgba(7,9,13,0))}
+  header h1{margin:0;font-size:14.5px;font-weight:650;letter-spacing:.01em}
+  header h1 b{color:var(--flood2)}
+  header p{margin:3px 0 0;font-size:11.5px;color:var(--mut);max-width:660px;line-height:1.45}
+  .compass{position:absolute;top:15px;right:18px;text-align:right;font-size:10px;color:var(--mut);line-height:1.5;letter-spacing:.05em;pointer-events:none}
+  .compass b{color:var(--ice)} .compass .s{color:var(--flood2)}
+
+  #seq{position:absolute;top:74px;left:14px;width:230px;z-index:5;background:rgba(14,18,26,.74);
+    backdrop-filter:blur(9px);border:1px solid var(--line);border-radius:12px;padding:8px;
+    max-height:calc(100% - 250px);overflow:auto}
+  #seq h2{margin:4px 6px 7px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);font-weight:600}
+  .step{display:flex;gap:9px;padding:7px;border-radius:8px;cursor:pointer;transition:background .15s}
+  .step:hover{background:rgba(255,255,255,.05)}
+  .step .n{flex:none;width:19px;height:19px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:9.5px;color:var(--mut);margin-top:1px}
+  .step .t{font-size:11.5px;line-height:1.3}
+  .step .t small{display:block;color:var(--mut);font-size:10px;margin-top:1px}
+  .step .t .g{color:#6c93c4;font-size:9.5px}
+  .step.on{background:rgba(221,122,58,.15)} .step.on .n{border-color:var(--flood);color:var(--flood2);background:rgba(221,122,58,.2)} .step.on .t{color:#fff}
+  .step.done .n{border-color:#3a5140;color:#6fae7f}
+
+  #toll{position:absolute;top:74px;right:14px;width:196px;z-index:5;background:rgba(14,18,26,.74);
+    backdrop-filter:blur(9px);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+  #toll h2{margin:0 0 8px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--mut);font-weight:600}
+  .fig{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;font-size:11px;color:var(--mut)}
+  .fig b{font-size:15px;color:var(--fg)} .fig b.red{color:#f08a6a}
+  #toll .note{margin-top:8px;font-size:9.5px;color:#5c6673;line-height:1.45;border-top:1px solid var(--line);padding-top:7px}
+
+  #bar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:6;width:min(760px,calc(100% - 28px));
+    background:rgba(14,18,26,.85);backdrop-filter:blur(9px);border:1px solid var(--line);border-radius:14px;padding:10px 13px}
+  .caption{font-size:12.5px;line-height:1.42;min-height:34px;margin-bottom:8px}
+  .caption b{color:var(--flood2)}
+  #profile{width:100%;height:52px;display:block;margin-bottom:8px;border-radius:7px;background:rgba(0,0,0,.25)}
+  .row{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  button{font-family:inherit;color:var(--fg);background:#1b2230;border:1px solid var(--line);border-radius:9px;
+    padding:8px 11px;font-size:12px;cursor:pointer;transition:.15s;white-space:nowrap}
+  button:hover{background:#232c3d;border-color:#37455a}
+  button.primary{background:var(--flood);border-color:var(--flood);color:#1a1005;font-weight:600}
+  button.primary:hover{background:var(--flood2)}
+  button.ghost.on{border-color:var(--flood);color:var(--flood2)}
+  input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:120px;height:4px;border-radius:3px;
+    background:linear-gradient(90deg,var(--flood) var(--p,0%),#2a3444 var(--p,0%));outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--flood);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:12px;height:12px;border-radius:50%;background:#fff;border:3px solid var(--flood);cursor:pointer}
+  .read{font-size:10.5px;color:var(--mut);min-width:150px;text-align:right}
+  .read b{color:var(--fg)}
+
+  #legend{position:absolute;left:14px;bottom:120px;z-index:4;font-size:10px;color:var(--mut);
+    background:rgba(14,18,26,.6);border:1px solid var(--line);border-radius:10px;padding:8px 10px;line-height:1.85;pointer-events:none}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px;vertical-align:-1px}
+  #foot{position:absolute;right:14px;bottom:122px;z-index:4;max-width:210px;font-size:9px;color:#59626f;line-height:1.5;pointer-events:none;text-align:right}
+  #err{position:absolute;inset:0;display:none;place-items:center;text-align:center;padding:40px;color:var(--mut);z-index:20}
+  @media (max-width:820px){
+    #seq,#toll,#legend,#foot{display:none} header p{display:none}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <canvas id="c"></canvas>
+
+  <header>
+    <h1><b>Nepal–Tibet flood</b> · 26 Aug 2026 — georeferenced 3D reconstruction</h1>
+    <p>Glacier collapse in Tibet to Chitwan lowland. Real coordinates &amp; elevations; relief synthesized, vertical scale exaggerated. Drag orbit · scroll/pinch zoom · click a stage to fly in.</p>
+  </header>
+  <div class="compass"><b>&#9650; N — Tibet (high)</b><br><span class="s">&#9660; S — Nepal (low)</span></div>
+
+  <aside id="seq"><h2>Sequence &nbsp;·&nbsp; click to zoom</h2><div id="steps"></div></aside>
+
+  <aside id="toll">
+    <h2>Provisional toll</h2>
+    <div class="fig"><span>Dead · Nepal</span><b class="red" id="f-dead">626</b></div>
+    <div class="fig"><span>Missing · Nepal</span><b class="red" id="f-miss">1,924</b></div>
+    <div class="fig"><span>Dead · Tibet</span><b>7</b></div>
+    <div class="fig"><span>Missing · Tibet</span><b>554</b></div>
+    <div class="fig"><span>Foreigners missing</span><b>500+</b></div>
+    <div class="note">Figures rose over days and remain provisional; nationals from ~32 countries among the missing, incl. Kailash pilgrims &amp; trekkers.</div>
+  </aside>
+
+  <div id="bar">
+    <div class="caption" id="cap"></div>
+    <canvas id="profile"></canvas>
+    <div class="row">
+      <button class="primary" id="play">&#9654; Play</button>
+      <button id="replay">&#8635;</button>
+      <button class="ghost" id="detail">Impact detail</button>
+      <button class="ghost" id="reset">Overview</button>
+      <input type="range" id="scrub" min="0" max="1000" value="0">
+      <span class="read mono" id="read">0 km · +0 min</span>
+    </div>
+  </div>
+
+  <div id="legend">
+    <span class="sw" style="background:#eaf4ff"></span>Snow / ice (&gt;4500 m)<br>
+    <span class="sw" style="background:#8b8f96"></span>Rock (3–4.5 km)<br>
+    <span class="sw" style="background:#4d6448"></span>Forested slope<br>
+    <span class="sw" style="background:#dd7a3a"></span>Debris / flood front<br>
+    <span class="sw" style="background:#3f8fd6"></span>River (ahead of front)<br>
+    <span class="sw" style="background:#e0623c;border-radius:50%"></span>Impact site
+  </div>
+  <div id="foot"></div>
+  <div id="err">Couldn&rsquo;t load the 3D engine. Check your network connection and reopen this file.</div>
+</div>
+
+<script id="flooddata" type="application/json">{"lat0":28.13088888888889,"lon0":85.22966666666667,"total_km":133.4,"wp":[{"id":"src","name":"Glacier source","sub":"Tibet \u00b7 ~5,300 m","lat":28.342,"lon":85.418,"elev":5300,"type":"ice","fact":"Ice\u2013rock avalanche breaks free at ~5,200\u20135,400 m under clear skies \u2014 no rain, no quake.","x":18.489,"z":-23.343,"dist":0.0,"t":0.0,"grad":0},{"id":"dam","name":"Natural dam","sub":"Lhende Khola","lat":28.315,"lon":85.4,"elev":3200,"type":"ev","fact":"Tumbling debris briefly dams the Lhende Khola, blocking the channel.","x":16.722,"z":-20.357,"dist":3.48,"t":0.0261,"grad":603.4},{"id":"lake","name":"Barrier lake bursts","sub":"~2,000,000 m\u00b3 impounded","lat":28.298,"lon":85.388,"elev":2100,"type":"water","fact":"Water backs up, then the blockage fails \u2014 a ~2 million m\u00b3 surge is released downstream.","x":15.544,"z":-18.477,"dist":5.71,"t":0.0428,"grad":493.3},{"id":"rasu","name":"Rasuwagadhi","sub":"Nepal\u2013China border","lat":28.281,"lon":85.377,"elev":1810,"type":"town","fact":"The border post and bridges linking Nepal and Tibet are torn away.","x":14.464,"z":-16.598,"dist":7.88,"t":0.0591,"grad":133.6},{"id":"timu","name":"Timure","sub":"customs yard","lat":28.245,"lon":85.374,"elev":1750,"type":"town","fact":"Customs containers, freight and an EV charging station are swept from the bank.","x":14.169,"z":-12.617,"dist":11.9,"t":0.0892,"grad":14.9},{"id":"syab","name":"Syabrubesi","sub":"Langtang gateway town","lat":28.162,"lon":85.335,"elev":1460,"type":"town","fact":"The main gateway to Langtang takes direct damage; the road north is destroyed.","x":10.341,"z":-3.44,"dist":21.89,"t":0.1641,"grad":29.0},{"id":"betr","name":"Betrawati","sub":"Bhote Koshi \u2192 Trishuli","lat":27.965,"lon":85.185,"elev":600,"type":"ev","fact":"The flow rolls down the Bhote Koshi and merges into the Trishuli, gathering water and sediment.","x":-4.385,"z":18.342,"dist":48.28,"t":0.362,"grad":32.6},{"id":"bidu","name":"Bidur \u00b7 Nuwakot","sub":"mid-hill valley","lat":27.87,"lon":85.16,"elev":500,"type":"town","fact":"Downstream towns in Nuwakot and Dhading are struck as the swollen river races through the hills.","x":-6.839,"z":28.846,"dist":59.12,"t":0.4432,"grad":9.2},{"id":"chit","name":"Toward Chitwan","sub":"Narayani lowland","lat":27.7,"lon":84.43,"elev":180,"type":"town","fact":"Debris \u2014 and victims \u2014 are carried ~170 km downstream toward the Chitwan lowlands.","x":-78.503,"z":47.643,"dist":133.38,"t":1.0,"grad":4.3}]}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+if(typeof THREE==='undefined'){document.getElementById('err').style.display='grid';return;}
+const C=THREE.Color, clamp=(v,a,b)=>Math.min(b,Math.max(a,v)), lerp=(a,b,t)=>a+(b-a)*t;
+const DATA=JSON.parse(document.getElementById('flooddata').textContent);
+const WP=DATA.wp;
+const EXAG=6.0;                 // vertical exaggeration
+const REAL_KM=170;              // reported runout (river is more sinuous than our spline)
+
+/* ---- noise ---- */
+function hash(x,y){let n=Math.sin(x*127.1+y*311.7)*43758.5453;return n-Math.floor(n);}
+function noise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi;
+  const u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  return lerp(lerp(hash(xi,yi),hash(xi+1,yi),u),lerp(hash(xi,yi+1),hash(xi+1,yi+1),u),v);}
+
+/* ---- path in projected km (x east, z north-neg); build spline for smooth course ---- */
+const rawPts=WP.map(w=>new THREE.Vector3(w.x, w.elev/1000, w.z));
+const spline=new THREE.CatmullRomCurve3(rawPts,false,'catmullrom',0.4);
+const SAMP=260, P=[];               // densified path samples with elevation(km)
+for(let i=0;i<=SAMP;i++){const v=spline.getPoint(i/SAMP);P.push({x:v.x,z:v.z,e:v.y});}
+
+/* nearest point on densified path -> floor elevation (km) + perpendicular dist (km) */
+function nearest(px,pz){
+  let best=1e9,be=0;
+  for(let i=0;i<P.length;i+=2){const dx=px-P[i].x,dz=pz-P[i].z,d=dx*dx+dz*dz;
+    if(d<best){best=d;be=P[i].e;}}
+  return{d:Math.sqrt(best),e:be};
+}
+
+/* ---- scene ---- */
+const bg=new C('#0b0e13');
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+const scene=new THREE.Scene();scene.background=bg;scene.fog=new THREE.Fog(bg,140,420);
+const camera=new THREE.PerspectiveCamera(46,1,0.1,2000);
+
+scene.add(new THREE.HemisphereLight(0x9fb6d0,0x0a0d12,0.8));
+const sun=new THREE.DirectionalLight(0xfff2e0,1.05);sun.position.set(-80,120,30);scene.add(sun);
+
+/* ---- terrain over bbox ---- */
+const xs=P.map(p=>p.x),zs=P.map(p=>p.z);
+const PAD=9;
+const minX=Math.min(...xs)-PAD,maxX=Math.max(...xs)+PAD;
+const minZ=Math.min(...zs)-PAD,maxZ=Math.max(...zs)+PAD;
+const W=maxX-minX,D=maxZ-minZ, cX=(minX+maxX)/2,cZ=(minZ+maxZ)/2;
+const NX=200,NZ=200;
+const geo=new THREE.PlaneGeometry(W,D,NX,NZ);geo.rotateX(-Math.PI/2);geo.translate(cX,0,cZ);
+const pos=geo.attributes.position, cols=[];
+const cSnow=new C('#eaf4ff'),cRock=new C('#8b8f96'),cAlp=new C('#6f7d5f'),
+      cFor=new C('#455f42'),cLow=new C('#5c6b4a'),cWet=new C('#38402f');
+const HALF=1.3;   // valley half width km
+function terrainH(x,z){
+  const nr=nearest(x,z);
+  let floor=nr.e;                              // km, real thalweg
+  const d=nr.d;
+  const northf=clamp((cZ-z)/(D*0.5)+0.5,0.2,1.4);   // higher relief upstream/north
+  let ridge=clamp((d-HALF)*0.42,0,2.6)*northf;       // km
+  let h=floor+ridge;
+  if(d<HALF) h-=(1-d/HALF)*Math.min(floor*0.18,0.35); // slight incision
+  h+=(noise(x*0.09+11,z*0.09+7)*2-1)*(0.12+ridge*0.22);
+  h+=(noise(x*0.28,z*0.28)*2-1)*0.05;
+  return {h, floor, ridge, d};
+}
+for(let i=0;i<pos.count;i++){
+  const x=pos.getX(i),z=pos.getZ(i);
+  const t=terrainH(x,z);
+  const elevM=t.h*1000;
+  pos.setY(i,t.h*EXAG);
+  const snow=4500+(noise(x*0.2,z*0.2)*2-1)*250;
+  let c=new C();
+  if(elevM>snow)c.copy(cRock).lerp(cSnow,clamp((elevM-snow)/700,0,1));
+  else if(elevM>3000)c.copy(cAlp).lerp(cRock,clamp((elevM-3000)/1500,0,1));
+  else if(elevM>1200)c.copy(cFor).lerp(cAlp,clamp((elevM-1200)/1800,0,1));
+  else c.copy(cLow).lerp(cFor,clamp((elevM-300)/900,0,1));
+  if(t.d<HALF*0.9)c.lerp(cWet,0.4);
+  c.offsetHSL(0,0,(noise(x*0.5+3,z*0.5+9)*2-1)*0.04);
+  cols.push(c.r,c.g,c.b);
+}
+geo.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));
+geo.computeVertexNormals();
+scene.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({vertexColors:true,flatShading:true,roughness:1,metalness:0})));
+/* base slab */
+const slab=new THREE.Mesh(new THREE.BoxGeometry(W,4,D),new THREE.MeshStandardMaterial({color:0x090c12,roughness:1}));
+slab.position.set(cX,-2,cZ);scene.add(slab);
+
+/* ---- km reference grid on floor ---- */
+const grid=new THREE.GridHelper(Math.max(W,D),Math.round(Math.max(W,D)/10),0x2a3646,0x1a2330);
+grid.position.set(cX,0.02,cZ);grid.material.opacity=.35;grid.material.transparent=true;scene.add(grid);
+
+/* ---- river tube on real path, progressive flood shader ---- */
+const riverPts=P.map(p=>new THREE.Vector3(p.x,(terrainH(p.x,p.z).floor)*EXAG+0.25,p.z));
+const rc=new THREE.CatmullRomCurve3(riverPts,false,'catmullrom',0.4);
+const TUB=600,RAD=7;
+const tube=new THREE.TubeGeometry(rc,TUB,0.32,RAD,false);
+const arc=new Float32Array(tube.attributes.position.count);
+for(let i=0;i<=TUB;i++)for(let j=0;j<=RAD;j++)arc[i*(RAD+1)+j]=i/TUB;
+tube.setAttribute('aArc',new THREE.BufferAttribute(arc,1));
+const riverMat=new THREE.ShaderMaterial({
+  uniforms:{uP:{value:0},uRiver:{value:new C('#3f8fd6')},uFlood:{value:new C('#bf6329')},uFront:{value:new C('#ffb066')}},
+  vertexShader:'attribute float aArc;varying float vA;void main(){vA=aArc;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+  fragmentShader:'varying float vA;uniform float uP;uniform vec3 uRiver,uFlood,uFront;void main(){float a=smoothstep(uP-0.005,uP,vA);vec3 c=mix(uFlood,uRiver,a);float f=smoothstep(0.014,0.0,abs(vA-uP))*step(vA,uP+0.016);c=mix(c,uFront,f*0.9);gl_FragColor=vec4(c,1.);}'
+});
+scene.add(new THREE.Mesh(tube,riverMat));
+
+/* ---- flood front blob + glow + light ---- */
+const blob=new THREE.Mesh(new THREE.IcosahedronGeometry(1,2),
+  new THREE.MeshStandardMaterial({color:0xdd7a3a,emissive:0x7a3a12,emissiveIntensity:1.5,roughness:.8}));
+scene.add(blob);
+function radial(hex){const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;const ctx=cv.getContext('2d');
+  const g=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);g.addColorStop(0,hex);g.addColorStop(.4,hex+'aa');g.addColorStop(1,hex+'00');
+  ctx.fillStyle=g;ctx.fillRect(0,0,s,s);const tx=new THREE.Texture(cv);tx.needsUpdate=true;return tx;}
+const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:radial('#ffb066'),transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+scene.add(glow);
+const flight=new THREE.PointLight(0xff9a4d,0,40,2);scene.add(flight);
+
+/* ---- markers ---- */
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath();}
+function label(text){const fs=26,pad=10,cv=document.createElement('canvas'),ctx=cv.getContext('2d');
+  ctx.font='600 '+fs+'px ui-sans-serif,system-ui,Arial';const w=ctx.measureText(text).width;
+  cv.width=w+pad*2;cv.height=fs+pad*2;const x=cv.getContext('2d');
+  x.font='600 '+fs+'px ui-sans-serif,system-ui,Arial';x.fillStyle='rgba(11,14,19,.74)';roundRect(x,0,0,cv.width,cv.height,10);x.fill();
+  x.fillStyle='#eef4f8';x.textBaseline='middle';x.fillText(text,pad,cv.height/2+1);
+  const tx=new THREE.Texture(cv);tx.needsUpdate=true;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx,transparent:true,depthTest:false}));
+  const sc=0.9;sp.scale.set(cv.width/cv.height*sc*2.0,sc*2.0,1);sp.userData.lab=true;return sp;}
+const pinCol={ice:'#dfeeff',ev:'#ffcf8a',water:'#7fd0ff',town:'#e0623c'};
+WP.forEach(w=>{
+  const fy=terrainH(w.x,w.z).floor*EXAG;
+  const p=new THREE.Vector3(w.x,fy,w.z);w._p=p;
+  const col=pinCol[w.type]||'#e0623c';
+  const stick=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.09,3.0,6),new THREE.MeshBasicMaterial({color:col}));
+  stick.position.set(w.x,fy+1.5,w.z);scene.add(stick);
+  const dot=new THREE.Mesh(new THREE.SphereGeometry(0.55,14,14),new THREE.MeshBasicMaterial({color:col}));
+  dot.position.set(w.x,fy+3.1,w.z);scene.add(dot);
+  const lab=label(w.name);lab.position.set(w.x,fy+4.6,w.z);scene.add(lab);w._lab=lab;
+});
+
+/* ---- travel model: front speed scales with local gradient (steep=fast) ---- */
+// build cumulative "modeled minutes" vs t using per-sample gradient
+const prof=[];    // {t, e(km), dkm, min}
+let cum=0,mins=0;
+const totalKm=WP[WP.length-1].dist;
+for(let i=0;i<P.length;i++){
+  const t=i/(P.length-1);
+  if(i>0){
+    const dx=P[i].x-P[i-1].x,dz=P[i].z-P[i-1].z;const dkm=Math.hypot(dx,dz);cum+=dkm;
+    const drop=(P[i-1].e-P[i].e)*1000;const g=Math.max(drop/Math.max(dkm,0.02),0.5); // m/km
+    const v=clamp(2.2*Math.sqrt(g),3,26);        // m/s modeled
+    mins+=(dkm*1000/v)/60;
+  }
+  prof.push({t,e:P[i].e,km:cum,min:mins});
+}
+const totMin=mins, totProfKm=cum;
+function atT(t){const idx=clamp(Math.floor(t*(prof.length-1)),0,prof.length-2);
+  const a=prof[idx],b=prof[idx+1],f=(t-a.t)/((b.t-a.t)||1);
+  return{e:lerp(a.e,b.e,f),km:lerp(a.km,b.km,f),min:lerp(a.min,b.min,f)};}
+
+/* ---- elevation long-profile canvas ---- */
+const pc=document.getElementById('profile');const pctx=pc.getContext('2d');
+function drawProfile(t){
+  const w=pc.clientWidth,h=pc.clientHeight;if(pc.width!==w*2){pc.width=w*2;pc.height=h*2;pctx.setTransform(2,0,0,2,0,0);}
+  pctx.clearRect(0,0,w,h);
+  const emax=5.4,pad=6;
+  const X=k=>pad+(k/totProfKm)*(w-2*pad);
+  const Y=e=>h-pad-(e/emax)*(h-2*pad);
+  // fill under curve
+  pctx.beginPath();pctx.moveTo(X(0),h-pad);
+  prof.forEach(p=>pctx.lineTo(X(p.km),Y(p.e)));
+  pctx.lineTo(X(totProfKm),h-pad);pctx.closePath();
+  pctx.fillStyle='rgba(63,143,214,.10)';pctx.fill();
+  // flooded portion
+  const cutKm=atT(t).km;
+  pctx.save();pctx.beginPath();pctx.rect(0,0,X(cutKm),h);pctx.clip();
+  pctx.beginPath();pctx.moveTo(X(0),h-pad);prof.forEach(p=>pctx.lineTo(X(p.km),Y(p.e)));pctx.lineTo(X(cutKm),h-pad);pctx.closePath();
+  pctx.fillStyle='rgba(221,122,58,.28)';pctx.fill();pctx.restore();
+  // line
+  pctx.beginPath();prof.forEach((p,i)=>{const fx=X(p.km),fy=Y(p.e);i?pctx.lineTo(fx,fy):pctx.moveTo(fx,fy);});
+  pctx.strokeStyle='#6c93c4';pctx.lineWidth=1.2;pctx.stroke();
+  // markers
+  WP.forEach(wp=>{pctx.fillStyle=pinCol[wp.type]||'#e0623c';const mx=X((wp.dist/totalKm)*totProfKm);
+    pctx.beginPath();pctx.arc(mx,Y(wp.elev/1000),2.1,0,7);pctx.fill();});
+  // front
+  const fx=X(cutKm);pctx.strokeStyle='#ffb066';pctx.lineWidth=1.4;
+  pctx.beginPath();pctx.moveTo(fx,pad);pctx.lineTo(fx,h-pad);pctx.stroke();
+  pctx.fillStyle='#7c8798';pctx.font='9px ui-monospace,monospace';
+  pctx.fillText('5 km',pad+2,h-2);pctx.textAlign='right';pctx.fillText('elevation ↑ (0–5.4 km) · distance →',w-pad,h-2);pctx.textAlign='left';
+}
+
+/* ---- camera: orbit + zoom + pinch + tween ---- */
+let target=new THREE.Vector3(cX,4,cZ);
+const off0=new THREE.Vector3(0.35*W,0.55*Math.max(W,D),0.9*D);
+let r=off0.length(),th=Math.atan2(off0.x,off0.z),ph=Math.acos(clamp(off0.y/r,-1,1));
+const RMIN=3,RMAX=Math.max(W,D)*1.4;
+let tween=null;
+function goTo(tp,rr,thh,phh,ms){const s={target:target.clone(),r,th,ph},e={target:tp.clone(),r:clamp(rr,RMIN,RMAX),th:thh,ph:clamp(phh,0.1,1.5)};
+  tween={s,e,t0:performance.now(),dur:ms||900};}
+function focusWP(w){const p=w._p.clone();p.y+=2;goTo(p, 10, th, 0.55, 900);}
+const ptrs=new Map();let pinch0=0,r0=0;
+function pd(e){canvas.setPointerCapture&&canvas.setPointerCapture(e.pointerId);ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY,btn:e.button,sh:e.shiftKey});
+  if(ptrs.size===2){const a=[...ptrs.values()];pinch0=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);r0=r;}}
+function pu(e){ptrs.delete(e.pointerId);}
+function pm(e){const s=ptrs.get(e.pointerId);if(!s)return;const dx=e.clientX-s.x,dy=e.clientY-s.y;s.x=e.clientX;s.y=e.clientY;
+  if(ptrs.size===2){const a=[...ptrs.values()];const dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
+    if(pinch0)r=clamp(r0*pinch0/dist,RMIN,RMAX);tween=null;return;}
+  tween=null;
+  if(s.btn===2||s.sh){const rt=new THREE.Vector3(Math.cos(th),0,-Math.sin(th)),fw=new THREE.Vector3(Math.sin(th),0,Math.cos(th));
+    target.addScaledVector(rt,-dx*r*0.0016);target.addScaledVector(fw,dy*r*0.0016);}
+  else{th-=dx*0.005;ph=clamp(ph-dy*0.005,0.1,1.5);}}
+canvas.addEventListener('pointerdown',pd);addEventListener('pointerup',pu);canvas.addEventListener('pointermove',pm);
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel',e=>{e.preventDefault();tween=null;r=clamp(r*(1+Math.sign(e.deltaY)*0.08),RMIN,RMAX);},{passive:false});
+/* click a marker to focus */
+const ray=new THREE.Raycaster(),m2=new THREE.Vector2();let downXY=null;
+canvas.addEventListener('pointerdown',e=>downXY=[e.clientX,e.clientY]);
+canvas.addEventListener('pointerup',e=>{if(!downXY)return;const mv=Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1]);downXY=null;if(mv>6)return;
+  m2.x=(e.clientX/innerWidth)*2-1;m2.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(m2,camera);
+  const hits=ray.intersectObjects(WP.map(w=>w._lab),false);
+  if(hits.length){const w=WP.find(x=>x._lab===hits[0].object);if(w){setT(w.t);playing=false;syncPlay();focusWP(w);}}});
+
+/* ---- UI ---- */
+const stepsEl=document.getElementById('steps');
+WP.forEach((w,i)=>{const d=document.createElement('div');d.className='step';
+  d.innerHTML='<div class="n">'+(i+1)+'</div><div class="t">'+w.name+'<small>'+w.sub+
+    '</small><span class="g">'+Math.round(w.elev)+' m · '+w.dist.toFixed(0)+' km'+(w.grad?' · '+w.grad+' m/km':'')+'</span></div>';
+  d.onclick=()=>{setT(w.t);playing=false;syncPlay();focusWP(w);};stepsEl.appendChild(d);});
+const stepEls=[...stepsEl.children];
+const cap=document.getElementById('cap'),scrub=document.getElementById('scrub'),read=document.getElementById('read'),playBtn=document.getElementById('play');
+document.getElementById('foot').innerHTML='Vertical exaggeration ×'+EXAG+' · grid 10 km · path is a spline through real waypoints (~'+REAL_KM+' km real runout). Sequence/cause from early USGS, ICIMOD &amp; Nepal reporting; under investigation.';
+let T=0,playing=false;const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+function activeIdx(){let a=0;WP.forEach((w,i)=>{if(T>=w.t-0.001)a=i;});return a;}
+function refresh(){
+  riverMat.uniforms.uP.value=T;
+  const p=rc.getPointAt(clamp(T,0,1));blob.position.copy(p);glow.position.copy(p);flight.position.copy(p);flight.position.y+=2;
+  const grow=lerp(0.9,3.4,T);blob.scale.setScalar(grow);glow.scale.setScalar(6+grow*4);
+  const on=T>0.001&&T<0.999;flight.intensity=on?2.2:0;glow.material.opacity=on?0.9:0;blob.visible=on;
+  const ai=activeIdx();cap.innerHTML='<b>'+WP[ai].name+'.</b> '+WP[ai].fact;
+  stepEls.forEach((e,i)=>{e.classList.toggle('on',i===ai);e.classList.toggle('done',i<ai);});
+  const s=atT(T);read.innerHTML='<b>'+s.km.toFixed(0)+' km</b> · +<b>'+Math.round(s.min)+' min</b> · '+(s.e*1000).toFixed(0)+' m';
+  scrub.value=Math.round(T*1000);scrub.style.setProperty('--p',(T*100)+'%');
+  drawProfile(T);
+}
+function setT(v){T=clamp(v,0,1);refresh();}
+scrub.oninput=()=>{playing=false;syncPlay();setT(scrub.value/1000);};
+function syncPlay(){playBtn.innerHTML=playing?'&#10074;&#10074; Pause':'&#9654; Play';playBtn.classList.toggle('primary',!playing);}
+playBtn.onclick=()=>{if(T>=0.999)T=0;playing=!playing;syncPlay();};
+document.getElementById('replay').onclick=()=>{T=0;playing=!reduce;syncPlay();refresh();};
+document.getElementById('reset').onclick=()=>{goTo(new THREE.Vector3(cX,4,cZ),off0.length(),Math.atan2(off0.x,off0.z),Math.acos(clamp(off0.y/off0.length(),-1,1)),900);};
+const detailBtn=document.getElementById('detail');
+detailBtn.onclick=()=>{ // fly into the Rasuwagadhi–Syabrubesi impact reach (zoomed-in render)
+  const a=WP.find(w=>w.id==='rasu'),b=WP.find(w=>w.id==='syab');
+  const mid=a._p.clone().add(b._p).multiplyScalar(0.5);mid.y+=3;
+  setT((a.t+b.t)/2);playing=false;syncPlay();goTo(mid, 13, th, 0.5, 1000);};
+
+/* ---- loop ---- */
+let last=performance.now();
+function tick(now){const dt=Math.min((now-last)/1000,0.05);last=now;
+  if(playing){ // advance by modeled minutes so speed varies with slope
+    let cur=atT(T).min; cur+=dt*(totMin/13);   // ~13s to traverse full timeline
+    // invert min->t
+    let lo=0,hi=1;for(let k=0;k<24;k++){const mid=(lo+hi)/2;(atT(mid).min<cur)?lo=mid:hi=mid;}
+    T=clamp((lo+hi)/2,0,1);if(atT(T).min>=totMin-0.01){T=1;playing=false;syncPlay();}refresh();}
+  glow.material.rotation+=dt*0.4;
+  if(tween){const k=clamp((now-tween.t0)/tween.dur,0,1),e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    target.lerpVectors(tween.s.target,tween.e.target,e);r=lerp(tween.s.r,tween.e.r,e);
+    th=lerp(tween.s.th,tween.e.th,e);ph=lerp(tween.s.ph,tween.e.ph,e);if(k>=1)tween=null;}
+  const sp=Math.sin(ph);
+  camera.position.set(target.x+r*sp*Math.sin(th),target.y+r*Math.cos(ph),target.z+r*sp*Math.cos(th));
+  camera.lookAt(target);
+  // scale labels a touch by distance so they stay legible
+  WP.forEach(w=>{const dd=camera.position.distanceTo(w._lab.position);const s=clamp(dd*0.02,0.9,3.4);
+    w._lab.scale.set(w._lab.material.map.image.width/w._lab.material.map.image.height*s,s,1);});
+  renderer.render(scene,camera);requestAnimationFrame(tick);}
+function resize(){renderer.setSize(innerWidth,innerHeight);camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();drawProfile(T);}
+addEventListener('resize',resize);resize();refresh();requestAnimationFrame(tick);
+if(!reduce)setTimeout(()=>{playing=true;syncPlay();},700);
+})();
+</script>
+</body>
+</html>

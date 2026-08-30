@@ -1,0 +1,174 @@
+{
+  "schemaVersion": "1.1",
+  "id": "nepal-tibet-2026",
+  "title": "Bhote Koshi 2026",
+  "subtitle": "Glacier collapse in Tibet to the Chitwan lowland — 26 August 2026",
+  "t0": "2026-08-26T02:52:00Z",
+  "t0Note": "USGS seismic signal Ms 5.2 at 02:52 UTC (08:37 Nepal time), reinterpreted as the collapse itself, not a tectonic quake.",
+  "tzOffsetMinutes": 345,
+  "reportedRunoutKm": 170,
+  "path": {
+    "note": "Digitised from known river towns along the Lhende Khola → Bhote Koshi → Trishuli → Narayani course. The app snaps every point to the DEM thalweg (lowest point across the valley) at load, so lateral error in these seeds is corrected against real elevation data.",
+    "coordinates": [
+      [85.462, 28.336], [85.445, 28.348], [85.425, 28.356], [85.400, 28.358],
+      [85.372, 28.352], [85.362, 28.335], [85.365, 28.315], [85.372, 28.298],
+      [85.379, 28.277], [85.376, 28.258], [85.374, 28.240], [85.362, 28.215],
+      [85.350, 28.190], [85.335, 28.162], [85.325, 28.135], [85.315, 28.105],
+      [85.300, 28.075], [85.280, 28.040], [85.255, 28.010], [85.225, 27.990],
+      [85.185, 27.965], [85.165, 27.935], [85.155, 27.905], [85.140, 27.870],
+      [85.125, 27.835], [85.110, 27.815], [85.075, 27.805], [85.035, 27.800],
+      [85.000, 27.795], [84.950, 27.800], [84.900, 27.808], [84.830, 27.800],
+      [84.770, 27.815], [84.700, 27.835], [84.630, 27.845], [84.560, 27.855],
+      [84.520, 27.820], [84.480, 27.770], [84.445, 27.735], [84.430, 27.715],
+      [84.430, 27.695]
+    ]
+  },
+  "routing": {
+    "method": "slope-kinematic-v1",
+    "note": "Front speed v = clamp(k·√gradient, 3, 26) m/s with gradient in m/km from the DEM thalweg. k is varied over 1.6–3.0 to produce the arrival-time band. This is a labelled estimate, not a calibrated hydraulic model.",
+    "kMin": 1.6, "kMid": 2.2, "kMax": 3.0, "vMin": 3, "vMax": 26
+  },
+  "stages": [
+    {
+      "id": "src", "title": "Glacier collapse", "place": "Tibet · ~5,300 m", "type": "ice",
+      "lngLat": [85.462, 28.336], "uncertaintyM": 2000,
+      "body": "An ice–rock avalanche breaks free at roughly 5,200–5,400 m under clear skies — no rain, no river rise, no earthquake. The seismic signal was the collapse itself.",
+      "sources": ["usgs", "wiki", "axios"]
+    },
+    {
+      "id": "dam", "title": "Natural dam forms", "place": "Lhende Khola valley", "type": "event",
+      "lngLat": [85.372, 28.352],
+      "body": "The debris moves north-west, then west, and slams into the Lhende Khola, temporarily blocking the river with ice, rock and mud.",
+      "sources": ["wiki", "axios"]
+    },
+    {
+      "id": "lake", "title": "Barrier lake bursts", "place": "upstream of the border", "type": "water",
+      "lngLat": [85.365, 28.315],
+      "body": "Water backs up behind the blockage, then the dam fails. The released surge sweeps up more ice, water, rock and sediment and amplifies as it descends.",
+      "sources": ["axios", "conversation"]
+    },
+    {
+      "id": "rasu", "title": "Rasuwagadhi", "place": "Nepal–China border crossing", "type": "impact",
+      "lngLat": [85.379, 28.277],
+      "body": "The flow strikes the border post. Bridges linking Nepal and Tibet are torn away; Chinese surveillance footage shows a wall of mud engulfing buildings as people run.",
+      "sources": ["dailystar", "nbc"]
+    },
+    {
+      "id": "timu", "title": "Timure", "place": "customs yard & dry port", "type": "impact",
+      "lngLat": [85.374, 28.240],
+      "body": "Customs containers, freight and an EV charging station are swept off the bank. The road north to the border is destroyed.",
+      "sources": ["tribune2025", "annapurna"]
+    },
+    {
+      "id": "syab", "title": "Syabrubesi", "place": "gateway to Langtang", "type": "impact",
+      "lngLat": [85.335, 28.162],
+      "body": "The main trekking gateway takes direct damage: riverside buildings and the road north are gone. Hydropower infrastructure along the reach is wrecked.",
+      "sources": ["annapurna", "nbc"]
+    },
+    {
+      "id": "betr", "title": "Betrawati", "place": "Bhote Koshi → Trishuli", "type": "event",
+      "lngLat": [85.185, 27.965],
+      "body": "The debris flow leaves the gorge and merges into the Trishuli. A river gauge here measures water rise — it can register the flood only once it has already arrived.",
+      "sources": ["dhm", "axios"]
+    },
+    {
+      "id": "bidu", "title": "Bidur · Nuwakot", "place": "district headquarters", "type": "impact",
+      "lngLat": [85.155, 27.905],
+      "body": "The swollen Trishuli races through Nuwakot. Phone video from a bus in Bidur captures the chaos as the river tears through the valley floor.",
+      "sources": ["nbc"]
+    },
+    {
+      "id": "male", "title": "Malekhu · Prithvi Highway", "place": "Kathmandu–Pokhara road", "type": "impact",
+      "lngLat": [84.830, 27.800],
+      "body": "The river runs beside the country's main east–west highway. A stretch of the Prithvi Highway is closed, briefly cutting Kathmandu from Pokhara by road.",
+      "sources": ["annapurna"]
+    },
+    {
+      "id": "mugl", "title": "Mugling", "place": "Marsyangdi confluence", "type": "event",
+      "lngLat": [84.560, 27.855],
+      "body": "The Marsyangdi joins and the river turns south toward the Terai. Bodies from upstream are recovered along this reach in the days that follow.",
+      "sources": ["deccan2025", "wiki"]
+    },
+    {
+      "id": "chit", "title": "Narayanghat · Chitwan", "place": "~170 km from source", "type": "impact",
+      "lngLat": [84.430, 27.695],
+      "body": "Debris and victims are carried as far as the Chitwan lowland, roughly 170 km from the collapse.",
+      "sources": ["wiki", "conversation"]
+    }
+  ],
+  "warningSites": [
+    {
+      "id": "w-betr", "name": "River gauge · Betrawati", "lngLat": [85.185, 27.965],
+      "kind": "gauge",
+      "note": "Hydrological station on the Trishuli (location approximate). A gauge detects rising water where it stands — it cannot see a collapse 40 km upstream.",
+      "sources": ["dhm"]
+    },
+    {
+      "id": "w-rasu", "name": "Joint China–Nepal glacier EWS · Rasuwagadhi area", "lngLat": [85.379, 28.277],
+      "kind": "ews",
+      "note": "A cross-border early-warning system for melting glaciers was reported to exist; whether it fired, and for what, is under review. Systems here watch rain and glacial-lake levels, not sudden clear-sky ice collapses.",
+      "sources": ["scmp", "axios"]
+    }
+  ],
+  "witnesses": [
+    {
+      "id": "v-rasu", "name": "Surveillance video · Chinese side", "lngLat": [85.381, 28.279],
+      "note": "Wall of mud and water crashes over a building as people run. Time on footage not yet verified.",
+      "sources": ["dailystar"]
+    },
+    {
+      "id": "v-bidu", "name": "Phone video · bus passenger, Bidur", "lngLat": [85.157, 27.903],
+      "note": "Passenger captures the surge from a bus. Time not yet verified.",
+      "sources": ["nbc"]
+    },
+    {
+      "id": "v-nuwa", "name": "Rescue photo · Nuwakot", "lngLat": [85.170, 27.930],
+      "note": "Police rescue a flooding victim (AFP/Getty).",
+      "sources": ["nbc"]
+    }
+  ],
+  "overlay2025": {
+    "title": "8 July 2025 — the same channel",
+    "fromLngLat": [85.372, 28.352],
+    "toLngLat": [84.430, 27.695],
+    "body": "Thirteen months earlier a supraglacial lake north of Langtang Himal drained into the Lhende Khola and surged down the Bhote Koshi: 9 dead, 20+ missing, the Friendship (Miteri) Bridge destroyed, four hydropower projects damaged. Bodies were recovered as far as Dhading and Chitwan. This was a known-hazard valley.",
+    "sources": ["reuters2025", "deccan2025", "tribune2025"]
+  },
+  "barrierLake": {
+    "title": "Live risk: barrier lake still upstream",
+    "lngLat": [85.360, 28.330],
+    "volumeM3": 2000000,
+    "body": "On 27 Aug Chinese authorities warned that a ~2,000,000 m³ lake had formed behind the collapse debris, with a high chance of breach given ~3,000,000 m³ of expected inflow. It overflowed slightly on 28 Aug; Rasuwa officials were warned.",
+    "sources": ["wiki"]
+  },
+  "toll": {
+    "asOf": "2026-08-30",
+    "items": [
+      { "label": "Dead · Nepal", "value": "626", "severity": "high" },
+      { "label": "Missing · Nepal", "value": "1,924", "severity": "high" },
+      { "label": "Dead · Tibet", "value": "7" },
+      { "label": "Missing · Tibet", "value": "554" },
+      { "label": "Foreigners missing", "value": "500+" }
+    ],
+    "note": "Figures rose sharply over the first four days and remain provisional; some people may be counted on both sides of the border. Nationals of ~32 countries are among the missing, including Kailash pilgrims and trekkers.",
+    "sources": ["wiki", "nbc", "cnn"]
+  },
+  "sources": {
+    "usgs": { "title": "USGS — revised event analysis: seismic signal generated by glacial collapse and debris flow", "org": "U.S. Geological Survey", "accessed": "2026-08-29" },
+    "icimod": { "title": "ICIMOD statement — avalanche from a glacier most likely cause", "org": "ICIMOD, Kathmandu", "accessed": "2026-08-27" },
+    "dhm": { "title": "Department of Hydrology & Meteorology — no significant rainfall in the 24 h before the flood", "org": "Government of Nepal", "accessed": "2026-08-27" },
+    "wiki": { "title": "2026 Nepal floods", "org": "Wikipedia (aggregate of official toll updates)", "accessed": "2026-08-30" },
+    "axios": { "title": "Why Nepal's rare, deadly flood struck without warning", "org": "Axios", "accessed": "2026-08-29" },
+    "conversation": { "title": "Tsunami of dirt: what caused Nepal's deadly glacial flood?", "org": "The Conversation", "accessed": "2026-08-29" },
+    "dailystar": { "title": "Nepal–Tibet disaster: what we know", "org": "The Daily Star / AFP", "accessed": "2026-08-29" },
+    "nbc": { "title": "Live updates — massive flash flood on Nepal–Tibet border", "org": "NBC News", "accessed": "2026-08-28" },
+    "cnn": { "title": "About 2,500 still missing after catastrophic flooding at Nepal–China border", "org": "CNN", "accessed": "2026-08-28" },
+    "scmp": { "title": "China, Nepal built an early warning system for melting glaciers. Does it work?", "org": "South China Morning Post", "accessed": "2026-08-27" },
+    "annapurna": { "title": "Nepal floods 2026 — trekking route update (Syabrubesi damage, Prithvi Highway closure)", "org": "Annapurna Trekking (operator notice)", "accessed": "2026-08-27" },
+    "reuters2025": { "title": "Tibetan glacial lake drainage triggered deadly flood in Nepal, climate body says", "org": "Reuters, 9 July 2025", "accessed": "2026-08-30" },
+    "deccan2025": { "title": "9 killed, 20 missing after floods on Nepal–China border", "org": "Deccan Herald / PTI, 9 July 2025", "accessed": "2026-08-30" },
+    "tribune2025": { "title": "12 Nepalis, 6 Chinese reported missing in flood along Nepal–China border", "org": "The Tribune / ANI, 8 July 2025", "accessed": "2026-08-30" },
+    "terrain": { "title": "Terrain Tiles (Terrarium encoding) — SRTM, NASADEM, ArcticDEM, GMTED and others", "org": "Mapzen / AWS Open Data", "accessed": "2026-08-30" },
+    "imagery": { "title": "World Imagery", "org": "Esri, Maxar, Earthstar Geographics, and the GIS User Community", "accessed": "2026-08-30" }
+  }
+}

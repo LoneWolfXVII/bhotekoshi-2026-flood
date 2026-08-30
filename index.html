@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#07090d" />
+  <title>Bhote Koshi 2026 — 3D reconstruction on real terrain</title>
+  <meta name="description" content="Interactive 3D reconstruction of the 26 August 2026 Nepal–Tibet glacial debris flow, from a 5,300 m glacier collapse to the Chitwan lowland, on real elevation data." />
+</head>
+<body>
+  <div id="map" role="application" aria-label="3D terrain map of the flood corridor"></div>
+
+  <header>
+    <div class="brand">
+      <h1><span class="accent">Bhote Koshi 2026</span> · 3D reconstruction</h1>
+      <p class="sub" id="subtitle"></p>
+      <div class="live" id="live" title="Elevation data status"><span class="dot"></span><span id="live-text">connecting</span></div>
+    </div>
+  </header>
+
+  <div id="notice" role="alert"></div>
+
+  <aside class="panel" id="seq" aria-label="Sequence of events">
+    <h2>Sequence <span class="sp"></span><span class="mono" style="letter-spacing:0;text-transform:none;color:var(--dim)">click to fly in</span></h2>
+    <div id="steps" role="list"></div>
+  </aside>
+
+  <aside class="panel" id="toll" aria-label="Provisional toll">
+    <h2>Provisional toll <span class="sp"></span><span class="asof" id="asof"></span></h2>
+    <div class="rows" id="toll-rows"></div>
+    <div class="note" id="toll-note"></div>
+  </aside>
+
+  <aside class="panel" id="layers" aria-label="Layers">
+    <h2>Layers</h2>
+    <div class="grid" id="layer-grid"></div>
+  </aside>
+
+  <div class="panel" id="bar" role="region" aria-label="Timeline">
+    <div id="cap" aria-live="polite"></div>
+    <canvas id="profile" aria-label="Elevation profile along the flow path"></canvas>
+    <div class="row">
+      <button class="btn primary" id="play" aria-label="Play or pause">&#9654;&nbsp; Play</button>
+      <button class="btn icon" id="replay" title="Replay" aria-label="Replay">&#8635;</button>
+      <div class="seg" role="group" aria-label="Playback speed">
+        <button class="btn on" data-speed="1">1×</button>
+        <button class="btn" data-speed="2">2×</button>
+        <button class="btn" data-speed="4">4×</button>
+      </div>
+      <button class="btn" id="follow" aria-pressed="false" title="Camera follows the flood front while playing">Follow</button>
+      <button class="btn" id="detail" title="Fly into the Rasuwagadhi–Syabrubesi impact reach">Impact detail</button>
+      <button class="btn" id="overview" title="Whole corridor">Overview</button>
+      <input type="range" id="scrub" min="0" max="10000" value="0" aria-label="Timeline position" />
+      <div class="read" id="read"></div>
+    </div>
+    <div class="row" style="margin-top:8px;gap:6px">
+      <button class="btn" id="btn-sources" style="font-size:11px">Sources &amp; method</button>
+      <button class="btn" id="btn-transcript" style="font-size:11px">Text version</button>
+      <span class="mono" id="foot" style="margin-left:auto;font-size:10px;color:var(--dim);text-align:right"></span>
+    </div>
+  </div>
+
+  <div class="modal" id="m-sources" role="dialog" aria-modal="true" aria-labelledby="m-sources-h">
+    <div class="card">
+      <button class="btn close" data-close>Close</button>
+      <h3 id="m-sources-h">Sources &amp; method</h3>
+      <div id="method"></div>
+      <div id="sources"></div>
+    </div>
+  </div>
+  <div class="modal" id="m-transcript" role="dialog" aria-modal="true" aria-labelledby="m-tr-h">
+    <div class="card">
+      <button class="btn close" data-close>Close</button>
+      <h3 id="m-tr-h">Text version</h3>
+      <p>The full sequence as plain text, with modeled arrival windows.</p>
+      <div id="transcript"></div>
+    </div>
+  </div>
+
+  <div id="loading">
+    <div class="box">
+      <h1><span class="accent">Bhote Koshi 2026</span></h1>
+      <p>Building the reconstruction from real elevation data</p>
+      <div class="track"><div class="fill" id="load-fill"></div></div>
+      <div class="lab" id="load-lab">Loading terrain engine</div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>
