@@ -171,7 +171,7 @@ function init(route: Route, centerline: Centerline) {
     ? (route.snapped ? 'OSM channel · DEM elevation' : 'OSM channel · schematic profile')
     : (route.snapped ? 'DEM-snapped thalweg' : 'schematic profile');
   const lenLabel = centerline.source === 'osm' ? 'km along the channel' : 'km path';
-  const updateFoot = () => { $('#foot').textContent = `${geomLabel} · ${route.totalKm.toFixed(0)} ${lenLabel} (reported runout ~${EVENT.reportedRunoutKm} km) · vertical ×${fm.exaggeration} · times modeled`; };
+  const updateFoot = () => { $('#foot').textContent = `${geomLabel} · ${route.totalKm.toFixed(0)} ${lenLabel} (reported runout ~${EVENT.reportedRunoutKm} km, approx.) · vertical ×${fm.exaggeration} · times modeled`; };
   updateFoot();
   $('#method').innerHTML = `
     <p><b>Terrain</b> — real elevation streamed from Mapzen/AWS Terrain Tiles (SRTM/NASADEM-derived, Terrarium encoding). Imagery: Esri World Imagery. No API keys.</p>
@@ -179,7 +179,7 @@ function init(route: Route, centerline: Centerline) {
       ? `the mapped river channel itself, from OpenStreetMap waterways via the Overpass API${centerline.generated ? ` (baked ${centerline.generated})` : ''}. The corridor changes name four times — Gyirong Tsangpo → Bhote Koshi → Trishuli → Narayani — so the centreline is assembled by a shortest-path search over every waterway in the corridor, forced through the event's own stage coordinates in order, which selects the main stem at each confluence. Positions are the surveyed channel; the DEM supplies elevation only.`
       : `seeded from known river towns, then every point is snapped to the lowest cell across a 1.8 km transect of the DEM (the thalweg). <b>The OSM centreline was unavailable, so this fallback is in use.</b>`
     } Elevation is forced non-increasing downstream. ${route.snapped ? `${route.demFetched} tiles sampled.` : 'DEM unreachable in this session — a schematic profile is shown.'}</p>
-    <p><b>Path length</b> — ${route.totalKm.toFixed(0)} km measured along the channel, against a reported runout of ~${EVENT.reportedRunoutKm} km. Following every meander is longer than the round figure quoted in reporting; the two are measuring different things, and neither has been adjusted to match the other.</p>
+    <p><b>Path length</b> — <b>${route.totalKm.toFixed(0)} km measured</b> along the channel, against a <b>reported ~${EVENT.reportedRunoutKm} km (approx.)</b>. The reported figure is a press approximation with no stated methodology, most consistent with a straight-valley distance; the measured value follows every meander (sinuosity 1.61 against a 124 km straight line). Both are shown and neither has been adjusted to match the other.</p>
     <p><b>Timing</b> — ${EVENT.routing.note} Arrival windows shown as min–max across the k range. ${EVENT.t0Note}</p>
     <p><b>Uncertainty</b> — the dashed circle at the source is a ${((src as any).uncertaintyM ?? 1500) / 1000} km position uncertainty; the barrier-lake footprint is drawn for scale from the reported volume, not from imagery.</p>`;
   $('#sources').innerHTML = Object.entries(EVENT.sources).map(([id, s]) => `<div class="src-item"><span class="id">${id}</span><div>${s.title}<div class="org">${s.org} · accessed ${s.accessed}</div></div></div>`).join('')
