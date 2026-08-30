@@ -7,6 +7,11 @@ items carried forward in `docs/02-IMPLEMENTATION-PLAN.md` §12.
 > backlog below is derived from the PRD's P0 gates, the plan's open items, and what the
 > current build actually does. Treat the ordering as a proposal, not an inherited one.
 
+**Standing principle.** Where a real measurement and a reported/external number disagree,
+surface both and label provenance. Never bend the measured value to match the reported one.
+Applied to the 199 km vs ~170 km length and to the source elevation; apply it to anything
+similar that comes up.
+
 ---
 
 ## P0 — blocking
@@ -18,19 +23,44 @@ items carried forward in `docs/02-IMPLEMENTATION-PLAN.md` §12.
       41% of the path that sat more than 500 m from any mapped river is now 0%. Refresh
       with `npm run centerline`.
 
-- [ ] **R2 gate · path length disagrees with the reported runout.** The channel measures
-      **199 km**; reporting says **~170 km**. The PRD gate is ±10% (153–187 km), so this
-      fails as written. It is not a routing bug — sinuosity is 1.61 against a 124 km
-      straight line, with no backtracking, and the line sits on the channel in imagery.
-      The two numbers measure different things. **Editorial decision needed:** restate the
-      gate against a measured centreline, or caption the ~170 km as a reported approximation.
-      The UI currently shows both and adjusts neither.
+- [x] **R2 gate · path length vs the reported runout.** *Resolved 2026-08-30 at the spec
+      layer.* The channel measures 199 km; reporting says ~170 km. The original ±10% gate
+      assumed the reported figure was a measured centreline — it is a press number with no
+      stated methodology, most consistent with a straight-valley distance. Geometry was not
+      touched. The PRD gate now reads "measured centreline length is displayed; agrees with
+      published figures allowing for sinuosity", and the UI captions the reported value
+      "approx." Both numbers are shown; neither is adjusted to match the other.
 
-- [ ] **Q6 · authoritative glacier source coordinate.** `stages[src]` is captioned
-      "~5,300 m" but its coordinate `[85.462, 28.336]` samples to **2,676 m** — it sits on
-      the valley floor, not the collapse scar. The first stage card and the profile's left
-      edge both show the wrong elevation. Blocks G2 (survey-grade claims) and keeps the
-      2 km uncertainty circle wider than it needs to be.
+- [x] **Source stage elevation contradicted its own caption.** *Fixed 2026-08-30.* The
+      card read "~5,300 m" while showing the DEM's 2,676 m valley-floor sample. Stages now
+      carry `elevM` + `elevSource` ("reported" | "dem"); the source is anchored to its
+      sourced 5,300 m, marked `*` on the card and the profile, and explained in the method
+      panel. The coordinate was **not** moved to a cell reading 5,300 m — elevation and
+      position are sourced independently.
+
+- [ ] **Q6 · authoritative glacier source coordinate — STILL OPEN.** The elevation override
+      above is a stopgap; the *position* is still the provisional valley-floor point
+      `[85.462, 28.336]` with a 2 km uncertainty circle.
+
+      **Candidate found, not adopted.** Petley's Landslide Blog (Eos/AGU,
+      `eos.org/thelandslideblog/26-august-2026-nepal-and-tibet`) gives the event location as
+      **[28.2765, 85.5194]**, hedged as "in the area of". It corroborates well: the DEM
+      samples **4,935 m** there with 7,019 m peaks within 1.7 km — genuine source-massif
+      terrain — against 2,672 m at the current point. Press reporting independently puts
+      the detachment at ~17,000 ft (~5,180 m), roughly 20 km NE of Rasuwagadhi.
+
+      **Why it was not adopted:** the source → Lhende Khola leg is a *subaerial debris
+      avalanche, not a river*. The coordinate is 1,569 m from the nearest mapped waterway
+      and `npm run centerline` fails outright on it — "no channel path src → rasu; corridor
+      is disconnected in OSM". A waterway centreline structurally cannot represent that
+      leg. Adopting the coordinate therefore requires first modelling the avalanche track
+      separately from the river centreline (a DEM steepest-descent path from the scar to
+      the confluence), then joining the two.
+
+      That work would also fix a related artefact: the profile currently shows the 5,300 →
+      2,650 m drop as a vertical cliff at km 0, because there is no geometry for the
+      descent. Needs a science-advisor call on the coordinate and a decision on the
+      two-segment path model.
 
 - [ ] **Stage coordinates that miss the channel.** `dam` (1,363 m), `lake` (1,304 m) and
       `bidu` (1,391 m) are too far from the mapped river to anchor the centreline and are
@@ -66,5 +96,8 @@ items carried forward in `docs/02-IMPLEMENTATION-PLAN.md` §12.
 
 - [ ] Vertical exaggeration ships as 1× / 1.6× / 2.5×; the PRD (R1) specifies 1× / 2× / 4×.
       Reconcile the doc or the control.
+- [ ] If the Petley coordinate is adopted, add `eos` to `event.json` sources
+      (Petley, D., *The 26 August 2026 catastrophic debris flow in Nepal and Tibet*,
+      Landslide Blog, Eos/AGU) and cite it on the source stage.
 - [ ] `scripts/fetch-centerline.mjs` hits Overpass live. Consider caching the raw response
       in CI so a rebuild is not at the mercy of Overpass availability or rate limits.
