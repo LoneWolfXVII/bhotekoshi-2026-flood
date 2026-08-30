@@ -38,6 +38,43 @@ similar that comes up.
       panel. The coordinate was **not** moved to a cell reading 5,300 m — elevation and
       position are sourced independently.
 
+- [ ] **R2a · the ~170 km runout figure is unsourced, and the front overstates the reach.**
+      *(Found 2026-08-30 while reconciling a "travelled nearly 100 km" claim.)* No source
+      could be found for 170 km. Published figures describe three different quantities:
+
+      | Figure | What it describes | Source |
+      |---|---|---|
+      | **80 km** (50 mi) | "the flow reached up to 80 km downstream" | Wikipedia aggregate |
+      | **~100 km** | "the debris flow and flooding travelled nearly 100 km" | USGS / Petley (Eos) |
+      | **72 km** (45 mi) | "dozens of settlements along a 72 km stretch of the Trishuli" | Wikipedia aggregate |
+      | **240 km** (150 mi) | bodies "carried 240 km away", recovered in Kushinagar and Maharajganj, Uttar Pradesh | Wikipedia aggregate |
+      | **170 km** | `reportedRunoutKm`, README, PRD §1, `chit` stage body | **none found** |
+
+      Mapped onto our measured centreline: 72 km ≈ Bidur (71.8 km), 80 km ≈ 8 km below
+      Bidur, 100 km ≈ between Bidur and Malekhu, 199 km = Narayanghat (our terminus), and
+      240 km ≈ 40 km past Narayanghat — the Indian border, consistent with bodies reaching
+      Uttar Pradesh. So the sourced *transport* distance is coherent; the sourced *flow*
+      reach is roughly half our animated corridor.
+
+      A plausible origin for the error: coverage describes affected districts as "between
+      about 70 km and nearly 200 km **from Kathmandu**" — a distance-from-Kathmandu
+      framing that reads as distance-from-source if quoted out of context. Not confirmed.
+
+      **Consequence:** the flood front animates a uniform surge over all 199 km with
+      modelled arrival times at Malekhu (118 km), Mugling (161 km) and Narayanghat
+      (199 km) — beyond the sourced flow reach of 80–100 km. The stage *text* already
+      distinguishes surge from transport ("bodies from upstream are recovered along this
+      reach"), but the *visualisation* does not, so it reads as a wall of mud arriving
+      everywhere.
+
+      **Proposed (needs an editorial call — not actioned):**
+      1. Replace `reportedRunoutKm` with separately sourced `flowReachKm` and
+         `debrisTransportKm`; they are different claims and must not share a number.
+      2. Render the corridor beyond the sourced flow reach differently — solid to ~100 km,
+         attenuated/dashed beyond — with a legend distinguishing surge from flood wave and
+         transport.
+      3. Update the README and PRD §1 headline, and the `chit` stage body.
+
 - [ ] **Q6 · authoritative glacier source coordinate — STILL OPEN.** The elevation override
       above is a stopgap; the *position* is still the provisional valley-floor point
       `[85.462, 28.336]` with a 2 km uncertainty circle.
