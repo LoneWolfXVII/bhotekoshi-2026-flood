@@ -7,6 +7,7 @@
   "t0Note": "USGS seismic signal Ms 5.2 at 02:52 UTC (08:37 Nepal time), reinterpreted as the collapse itself, not a tectonic quake.",
   "tzOffsetMinutes": 345,
   "reportedRunoutKm": 170,
+  "reportedRunoutNote": "Press approximation with no stated methodology, most consistent with a straight-valley distance. The app displays its own measured centreline length alongside it and adjusts neither.",
   "path": {
     "note": "Digitised from known river towns along the Lhende Khola → Bhote Koshi → Trishuli → Narayani course. The app snaps every point to the DEM thalweg (lowest point across the valley) at load, so lateral error in these seeds is corrected against real elevation data.",
     "coordinates": [
@@ -32,6 +33,8 @@
     {
       "id": "src", "title": "Glacier collapse", "place": "Tibet · ~5,300 m", "type": "ice",
       "lngLat": [85.462, 28.336], "uncertaintyM": 2000,
+      "elevM": 5300, "elevSource": "reported",
+      "elevNote": "Detachment elevation is the reported ~5,200–5,400 m, not a DEM sample. The position above is provisional (see uncertaintyM) and sits on the valley floor, where the DEM reads ~2,676 m; using that sample would contradict the sourced account of the collapse. Elevation and position are sourced independently — do not move the coordinate to make the DEM agree.",
       "body": "An ice–rock avalanche breaks free at roughly 5,200–5,400 m under clear skies — no rain, no river rise, no earthquake. The seismic signal was the collapse itself.",
       "sources": ["usgs", "wiki", "axios"]
     },

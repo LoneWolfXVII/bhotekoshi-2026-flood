@@ -78,6 +78,14 @@ export async function buildRoute(
   opts: {
     stepM?: number; transectHalfM?: number; transectSamples?: number;
     snapMode?: SnapMode;
+    /**
+     * Reported elevation of the flow's origin, in metres. When the first point's
+     * position is provisional — a collapse scar known by report rather than by
+     * coordinate — the DEM sample there describes the valley floor, not the source.
+     * Supplying this anchors the profile and the first gradient to the sourced value
+     * instead. The position is left untouched; only the elevation is overridden.
+     */
+    startElevM?: number;
     onProgress?: (label: string, f: number) => void;
   } = {}
 ): Promise<Route> {
@@ -146,6 +154,13 @@ export async function buildRoute(
       }
     }
     if (lastGood >= 0) for (let k = lastGood + 1; k < snappedElev.length; k++) snappedElev[k] = snappedElev[lastGood];
+  }
+
+  // Reported origin elevation wins over the DEM sample at a provisional coordinate.
+  // Applied before the monotonic cascade and the gradient window so the profile, the
+  // stage card and the routing model all agree on where the flow started.
+  if (snapped && opts.startElevM != null && Number.isFinite(opts.startElevM)) {
+    snappedElev[0] = opts.startElevM;
   }
 
   // 3) smooth positions (window 3) — only needed where snapping moved points around;

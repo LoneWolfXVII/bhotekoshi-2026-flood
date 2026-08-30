@@ -6,7 +6,32 @@ import { FloodMap, type Mode } from './map';
 import { buildRoute, nearestIndex, stateAtTime, bearingDeg, type Route } from './route';
 import { loadCenterline, type Centerline } from './centerline';
 
-type Stage = (typeof EVENT.stages)[number] & { idx: number; km: number; elev: number; tMin: number; tMid: number; tMax: number };
+/**
+ * A stage as authored in event.json. Declared explicitly rather than inferred, because
+ * only some stages carry the optional fields and TypeScript would otherwise infer a
+ * union of per-element shapes that nothing can be assigned back to.
+ */
+interface EventStage {
+  id: string; title: string; place: string; type: string;
+  lngLat: number[]; body: string; sources: string[];
+  uncertaintyM?: number;
+  /** Reported detachment elevation, used when `elevSource` is "reported". */
+  elevM?: number;
+  elevSource?: string;
+  elevNote?: string;
+}
+const EVENT_STAGES = EVENT.stages as EventStage[];
+
+type Stage = Omit<EventStage, 'elevSource'> & {
+  idx: number; km: number; elev: number;
+  /** Whether `elev` came from the DEM or from a sourced report. */
+  elevSource: 'reported' | 'dem';
+  tMin: number; tMid: number; tMax: number;
+};
+
+/** Reported elevation for a stage whose coordinate is provisional, else null. */
+const reportedElevM = (s: EventStage | undefined): number | null =>
+  s?.elevSource === 'reported' && Number.isFinite(s.elevM) ? (s.elevM as number) : null;
 
 const $ = <T extends HTMLElement = HTMLElement>(sel: string) => document.querySelector(sel) as T;
 const clamp = (v: number, a: number, b: number) => Math.min(b, Math.max(a, v));
@@ -46,6 +71,7 @@ if (import.meta.env.DEV) (window as any).__app = { fm, buildRoute, EVENT };
   const centerline = loadCenterline(EVENT.path.coordinates as LngLat[]);
   const route = await buildRoute(centerline.coords, EVENT.routing, {
     snapMode: centerline.source === 'osm' ? 'elevation' : 'thalweg',
+    startElevM: reportedElevM(EVENT_STAGES[0]) ?? undefined,
     onProgress: (l, f) => setLoad(l, f),
   });
   if (import.meta.env.DEV) (window as any).__app.route = route;
@@ -62,10 +88,16 @@ function showNotice(html: string) { const n = $('#notice'); n.innerHTML = html; 
 
 function init(route: Route, centerline: Centerline) {
   const P = route.points;
-  const stages: Stage[] = EVENT.stages.map((s) => {
+  const stages: Stage[] = EVENT_STAGES.map((s) => {
     const idx = nearestIndex(route, s.lngLat as LngLat);
     const p = P[idx];
-    return { ...s, idx, km: p.km, elev: p.elev, tMin: p.tMin, tMid: p.tMid, tMax: p.tMax };
+    const reported = reportedElevM(s);
+    return {
+      ...s, idx, km: p.km,
+      elev: reported ?? p.elev,
+      elevSource: reported != null ? 'reported' as const : 'dem' as const,
+      tMin: p.tMin, tMid: p.tMid, tMax: p.tMax,
+    };
   });
   stages.sort((a, b) => a.idx - b.idx);
 
@@ -85,7 +117,7 @@ function init(route: Route, centerline: Centerline) {
   const ovFrom = nearestIndex(route, ov.fromLngLat as LngLat), ovTo = nearestIndex(route, ov.toLngLat as LngLat);
   fm.setOverlay2025(route, ovFrom, ovTo, false);
   const src = stages.find((s) => s.id === 'src')!;
-  fm.setUncertainty(src.lngLat as LngLat, (src as any).uncertaintyM ?? 1500);
+  fm.setUncertainty(src.lngLat as LngLat, src.uncertaintyM ?? 1500);
   fm.setLake(EVENT.barrierLake.lngLat as LngLat, false);
 
   // markers
@@ -127,8 +159,9 @@ function init(route: Route, centerline: Centerline) {
   stages.forEach((s, i) => {
     const d = document.createElement('div');
     d.className = 'step'; d.dataset.type = s.type; d.tabIndex = 0; d.setAttribute('role', 'listitem');
+    const elevMark = s.elevSource === 'reported' ? '<abbr title="Reported elevation, not a DEM sample — the source coordinate is provisional">*</abbr>' : '';
     d.innerHTML = `<div class="n">${i + 1}</div><div class="t">${s.title}<small>${s.place}</small>
-      <span class="meta"><b>${Math.round(s.elev)} m</b> · ${s.km.toFixed(0)} km · +${fmtMin(s.tMin)}–${fmtMin(s.tMax)}</span></div>`;
+      <span class="meta"><b>${Math.round(s.elev)} m${elevMark}</b> · ${s.km.toFixed(0)} km · +${fmtMin(s.tMin)}–${fmtMin(s.tMax)}</span></div>`;
     d.addEventListener('click', () => goStage(i, true));
     d.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goStage(i, true); } });
     stepsEl.appendChild(d);
@@ -181,12 +214,13 @@ function init(route: Route, centerline: Centerline) {
     } Elevation is forced non-increasing downstream. ${route.snapped ? `${route.demFetched} tiles sampled.` : 'DEM unreachable in this session — a schematic profile is shown.'}</p>
     <p><b>Path length</b> — <b>${route.totalKm.toFixed(0)} km measured</b> along the channel, against a <b>reported ~${EVENT.reportedRunoutKm} km (approx.)</b>. The reported figure is a press approximation with no stated methodology, most consistent with a straight-valley distance; the measured value follows every meander (sinuosity 1.61 against a 124 km straight line). Both are shown and neither has been adjusted to match the other.</p>
     <p><b>Timing</b> — ${EVENT.routing.note} Arrival windows shown as min–max across the k range. ${EVENT.t0Note}</p>
-    <p><b>Uncertainty</b> — the dashed circle at the source is a ${((src as any).uncertaintyM ?? 1500) / 1000} km position uncertainty; the barrier-lake footprint is drawn for scale from the reported volume, not from imagery.</p>`;
+    <p><b>Uncertainty</b> — the dashed circle at the source is a ${(src.uncertaintyM ?? 1500) / 1000} km position uncertainty; the barrier-lake footprint is drawn for scale from the reported volume, not from imagery.</p>
+    ${src.elevSource === 'reported' ? `<p><b>Source elevation</b> — the collapse is shown at its <b>reported ${Math.round(src.elev).toLocaleString()} m</b> (marked * in the sequence), not at a DEM sample. The source coordinate is provisional and currently sits on the valley floor, where the DEM reads ~2,676 m; using that would contradict the sourced account of a detachment at 5,200–5,400 m. Elevation and position are sourced separately, and the coordinate has <i>not</i> been moved to a cell that happens to read 5,300 m. The profile's left edge is anchored to the reported value.</p>` : ''}`;
   $('#sources').innerHTML = Object.entries(EVENT.sources).map(([id, s]) => `<div class="src-item"><span class="id">${id}</span><div>${s.title}<div class="org">${s.org} · accessed ${s.accessed}</div></div></div>`).join('')
     + (centerline.source === 'osm'
       ? `<div class="src-item"><span class="id">osm</span><div>River centreline — Lhende Khola → Bhote Koshi → Trishuli → Narayani<div class="org">${centerline.attribution}${centerline.generated ? ` · baked ${centerline.generated}` : ''}</div></div></div>`
       : '');
-  $('#transcript').innerHTML = stages.map((s, i) => `<div class="tr-stage"><h4>${i + 1}. ${s.title} — ${s.place}</h4><div class="m">${Math.round(s.elev)} m · ${s.km.toFixed(1)} km from source · modeled arrival +${fmtMin(s.tMin)} to +${fmtMin(s.tMax)} (≈ ${fmtLocal(s.tMin)}–${fmtLocal(s.tMax)} NPT)</div><p>${s.body}</p></div>`).join('')
+  $('#transcript').innerHTML = stages.map((s, i) => `<div class="tr-stage"><h4>${i + 1}. ${s.title} — ${s.place}</h4><div class="m">${Math.round(s.elev)} m${s.elevSource === 'reported' ? ' (reported, not DEM-sampled)' : ''} · ${s.km.toFixed(1)} km from source · modeled arrival +${fmtMin(s.tMin)} to +${fmtMin(s.tMax)} (≈ ${fmtLocal(s.tMin)}–${fmtLocal(s.tMax)} NPT)</div><p>${s.body}</p></div>`).join('')
     + `<div class="tr-stage"><h4>${ov.title}</h4><p>${ov.body}</p></div><div class="tr-stage"><h4>${EVENT.barrierLake.title}</h4><p>${EVENT.barrierLake.body}</p></div>`;
 
   // modals
@@ -275,7 +309,7 @@ function init(route: Route, centerline: Centerline) {
     stages.forEach((s) => { pctx.fillStyle = col[s.type] ?? '#fff'; pctx.beginPath(); pctx.arc(X(s.km), Y(s.elev), 2.4, 0, 7); pctx.fill(); });
     pctx.strokeStyle = '#ffb066'; pctx.lineWidth = 1.5; pctx.beginPath(); pctx.moveTo(X(frontKm), pad); pctx.lineTo(X(frontKm), h - pad); pctx.stroke();
     pctx.fillStyle = '#6c7683'; pctx.font = '9.5px JetBrains Mono, ui-monospace, monospace';
-    pctx.fillText(`${Math.round(P[0].elev)} m`, pad + 3, 11); pctx.textAlign = 'right'; pctx.fillText(`${Math.round(P[P.length - 1].elev)} m · ${route.totalKm.toFixed(0)} km`, w - pad - 2, h - 4); pctx.textAlign = 'left';
+    pctx.fillText(`${Math.round(P[0].elev)} m${stages[0]?.elevSource === 'reported' ? '*' : ''}`, pad + 3, 11); pctx.textAlign = 'right'; pctx.fillText(`${Math.round(P[P.length - 1].elev)} m · ${route.totalKm.toFixed(0)} km`, w - pad - 2, h - 4); pctx.textAlign = 'left';
   }
 
   /* ---------------- loop ---------------- */
