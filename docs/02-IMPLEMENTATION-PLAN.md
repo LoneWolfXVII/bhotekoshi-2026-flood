@@ -297,7 +297,52 @@ The Phase 0 pipeline assumed server-side DEM processing. The shipped build inste
 ### Open items carried forward
 
 - Verify witness-footage timestamps and refit `k` (Q4 partial).
-- Replace the digitised seed line with the OSM river centreline once an Overpass fetch is added (with fallback to the seed).
+- ~~Replace the digitised seed line with the OSM river centreline once an Overpass fetch is added (with fallback to the seed).~~ **Done 2026-08-30 — see ADR-6.**
 - Authoritative glacier-source coordinate (Q6) to shrink the uncertainty circle.
 - Pre/post Sentinel-2 swipe and SAR extent remain P1.
 
+### ADR-6: Flow-path geometry — OSM centreline, baked at build time
+
+**Status:** Accepted · **Closes:** the seed-line item above · **Satisfies:** PRD R2
+
+**Context.** The DEM thalweg snap (ADR-5 addendum) corrects lateral error by moving each
+point to the lowest cell across a 1.8 km valley transect. In a gorge that lands on the
+river. In a floodplain it does not: across 1.8 km of the Chitwan flats the lowest cell
+often belongs to a side channel or a neighbouring drainage, so the path left the Narayani
+entirely — measured against mapped channels, the median point sat 314 m away, the 90th
+percentile 1,857 m, and 41% of the path was more than 500 m from any mapped river.
+
+**Decision.** Take geometry from OpenStreetMap waterways and use the DEM only for
+elevation.
+
+*Assembly.* The corridor is renamed four times (Gyirong Tsangpo → Bhote Koshi → Trishuli →
+Narayani), split across ~1,200 ways, many unnamed — so name matching is not viable. Instead
+build a node graph of every waterway in the corridor bbox (exact shared-node coordinates
+reconstruct real topology) and run Dijkstra through the event's own stage coordinates as
+ordered anchors. Tributaries are dead ends, so a path forced through Rasuwagadhi → Timure →
+Syabrubesi → Betrawati → Malekhu → Mugling → Narayanghat selects the main stem at every
+confluence. Stages further than 800 m from the channel are skipped as anchors so an
+imprecise seed cannot drag the route up a tributary.
+
+*Baked, not fetched at runtime.* The Overpass query returns several MB. Running it in the
+browser on every load would break the ≤6 MB-before-interactive budget (R9) and make the
+product depend on Overpass being up. So `npm run centerline` bakes
+`src/data/centerline.json` (1,001 points, 22 KB after a 12 m Douglas–Peucker simplify) into
+the single-file build. This keeps the deliverable offline-capable and keyless.
+
+*Fallback preserved.* If the baked artefact is missing, short or malformed, the app reverts
+to the seed line with the original thalweg snap and says so in the method panel.
+
+| | Seed + thalweg snap | OSM centreline |
+|---|---|---|
+| Median distance to mapped channel | 314 m | 0 m |
+| p90 | 1,857 m | 30 m |
+| Beyond 500 m | 41.2% | 0.0% |
+| Path length | 182.6 km | 199.4 km |
+
+**Consequences.** +22 KB to the bundle. Path length moves further from the reported
+~170 km, because following real meanders is longer than the round figure in reporting —
+recorded in `TODO.md` as an editorial decision rather than silently reconciled. Geometry is
+now only as fresh as the last bake, so the refresh belongs in CI. `buildRoute` gained an
+explicit `snapMode` so the two regimes cannot be confused: `thalweg` moves points,
+`elevation` never does.
