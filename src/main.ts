@@ -4,6 +4,7 @@ import EVENT from './data/event.json';
 import type { LngLat } from './dem';
 import { FloodMap, type Mode } from './map';
 import { buildRoute, nearestIndex, stateAtTime, bearingDeg, type Route } from './route';
+import { loadCenterline, type Centerline } from './centerline';
 
 type Stage = (typeof EVENT.stages)[number] & { idx: number; km: number; elev: number; tMin: number; tMid: number; tMax: number };
 
@@ -32,16 +33,24 @@ document.title = `${EVENT.title} — 3D reconstruction on real terrain`;
 
 const fm = new FloodMap($('#map'), 'satellite');
 setLoad('Loading terrain engine', 0.02);
+// dev-only handle so scripted screenshots can position the camera deterministically
+if (import.meta.env.DEV) (window as any).__app = { fm, buildRoute, EVENT };
 
 (async () => {
   await fm.ready();
   fm.applyTerrainAndSky();
   setLoad('Terrain online', 0.04);
 
-  const route = await buildRoute(EVENT.path.coordinates as LngLat[], EVENT.routing, {
+  // Geometry comes from the real OSM waterway centreline; the hand-digitised line in
+  // event.json is only a fallback if that artefact is missing or malformed.
+  const centerline = loadCenterline(EVENT.path.coordinates as LngLat[]);
+  const route = await buildRoute(centerline.coords, EVENT.routing, {
+    snapMode: centerline.source === 'osm' ? 'elevation' : 'thalweg',
     onProgress: (l, f) => setLoad(l, f),
   });
-  init(route);
+  if (import.meta.env.DEV) (window as any).__app.route = route;
+  if (import.meta.env.DEV) (window as any).__app.centerline = centerline;
+  init(route, centerline);
 })().catch((err) => {
   console.error(err);
   setLoad('Something went wrong loading the reconstruction', 1);
@@ -51,7 +60,7 @@ setLoad('Loading terrain engine', 0.02);
 /* ---------------- app ---------------- */
 function showNotice(html: string) { const n = $('#notice'); n.innerHTML = html; n.classList.add('show'); }
 
-function init(route: Route) {
+function init(route: Route, centerline: Centerline) {
   const P = route.points;
   const stages: Stage[] = EVENT.stages.map((s) => {
     const idx = nearestIndex(route, s.lngLat as LngLat);
@@ -62,7 +71,7 @@ function init(route: Route) {
 
   // live indicator + notices
   const live = $('#live'), liveText = $('#live-text');
-  if (route.snapped) { live.classList.add('ok'); liveText.textContent = `real DEM · ${route.demFetched} tiles`; }
+  if (route.snapped) { live.classList.add('ok'); liveText.textContent = `${centerline.source === 'osm' ? 'OSM channel · ' : ''}real DEM · ${route.demFetched} tiles`; }
   else { live.classList.add('warn'); liveText.textContent = 'DEM unavailable — schematic profile'; }
   setTimeout(() => {
     if (!route.snapped || fm.tileErrors > 12) {
@@ -158,14 +167,25 @@ function init(route: Route) {
   mkTog('Barrier lake (live risk)', '#7fd0ff', false, (v) => { fm.setLake(EVENT.barrierLake.lngLat as LngLat, v); aux.filter((a) => a.kind === 'lake').forEach((a) => (a.el.style.display = v ? '' : 'none')); });
 
   // footer / method
-  const updateFoot = () => { $('#foot').textContent = `${route.snapped ? 'DEM-snapped thalweg' : 'schematic profile'} · ${route.totalKm.toFixed(0)} km path (reported ~${EVENT.reportedRunoutKm} km) · vertical ×${fm.exaggeration} · times modeled`; };
+  const geomLabel = centerline.source === 'osm'
+    ? (route.snapped ? 'OSM channel · DEM elevation' : 'OSM channel · schematic profile')
+    : (route.snapped ? 'DEM-snapped thalweg' : 'schematic profile');
+  const lenLabel = centerline.source === 'osm' ? 'km along the channel' : 'km path';
+  const updateFoot = () => { $('#foot').textContent = `${geomLabel} · ${route.totalKm.toFixed(0)} ${lenLabel} (reported runout ~${EVENT.reportedRunoutKm} km) · vertical ×${fm.exaggeration} · times modeled`; };
   updateFoot();
   $('#method').innerHTML = `
     <p><b>Terrain</b> — real elevation streamed from Mapzen/AWS Terrain Tiles (SRTM/NASADEM-derived, Terrarium encoding). Imagery: Esri World Imagery. No API keys.</p>
-    <p><b>Flow path</b> — seeded from known river towns, then every point is snapped to the lowest cell across a 1.8 km transect of the DEM (the thalweg). Elevation is forced non-increasing downstream. ${route.snapped ? `${route.demFetched} tiles sampled.` : 'DEM unreachable in this session — a schematic profile is shown.'}</p>
+    <p><b>Flow path</b> — ${centerline.source === 'osm'
+      ? `the mapped river channel itself, from OpenStreetMap waterways via the Overpass API${centerline.generated ? ` (baked ${centerline.generated})` : ''}. The corridor changes name four times — Gyirong Tsangpo → Bhote Koshi → Trishuli → Narayani — so the centreline is assembled by a shortest-path search over every waterway in the corridor, forced through the event's own stage coordinates in order, which selects the main stem at each confluence. Positions are the surveyed channel; the DEM supplies elevation only.`
+      : `seeded from known river towns, then every point is snapped to the lowest cell across a 1.8 km transect of the DEM (the thalweg). <b>The OSM centreline was unavailable, so this fallback is in use.</b>`
+    } Elevation is forced non-increasing downstream. ${route.snapped ? `${route.demFetched} tiles sampled.` : 'DEM unreachable in this session — a schematic profile is shown.'}</p>
+    <p><b>Path length</b> — ${route.totalKm.toFixed(0)} km measured along the channel, against a reported runout of ~${EVENT.reportedRunoutKm} km. Following every meander is longer than the round figure quoted in reporting; the two are measuring different things, and neither has been adjusted to match the other.</p>
     <p><b>Timing</b> — ${EVENT.routing.note} Arrival windows shown as min–max across the k range. ${EVENT.t0Note}</p>
     <p><b>Uncertainty</b> — the dashed circle at the source is a ${((src as any).uncertaintyM ?? 1500) / 1000} km position uncertainty; the barrier-lake footprint is drawn for scale from the reported volume, not from imagery.</p>`;
-  $('#sources').innerHTML = Object.entries(EVENT.sources).map(([id, s]) => `<div class="src-item"><span class="id">${id}</span><div>${s.title}<div class="org">${s.org} · accessed ${s.accessed}</div></div></div>`).join('');
+  $('#sources').innerHTML = Object.entries(EVENT.sources).map(([id, s]) => `<div class="src-item"><span class="id">${id}</span><div>${s.title}<div class="org">${s.org} · accessed ${s.accessed}</div></div></div>`).join('')
+    + (centerline.source === 'osm'
+      ? `<div class="src-item"><span class="id">osm</span><div>River centreline — Lhende Khola → Bhote Koshi → Trishuli → Narayani<div class="org">${centerline.attribution}${centerline.generated ? ` · baked ${centerline.generated}` : ''}</div></div></div>`
+      : '');
   $('#transcript').innerHTML = stages.map((s, i) => `<div class="tr-stage"><h4>${i + 1}. ${s.title} — ${s.place}</h4><div class="m">${Math.round(s.elev)} m · ${s.km.toFixed(1)} km from source · modeled arrival +${fmtMin(s.tMin)} to +${fmtMin(s.tMax)} (≈ ${fmtLocal(s.tMin)}–${fmtLocal(s.tMax)} NPT)</div><p>${s.body}</p></div>`).join('')
     + `<div class="tr-stage"><h4>${ov.title}</h4><p>${ov.body}</p></div><div class="tr-stage"><h4>${EVENT.barrierLake.title}</h4><p>${EVENT.barrierLake.body}</p></div>`;
 
